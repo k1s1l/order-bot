@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Nike Air Force White",
+    "price": 1900,
+    "sizes": [39, 40, 41, 42, 43],
+    "available": true
+  },
+  {
+    "name": "Adidas Superstar Black",
+    "price": 2100,
+    "sizes": [38, 39, 40, 41],
+    "available": true
+  },
+  {
+    "name": "Puma RS-X",
+    "price": 2400,
+    "sizes": [40, 41, 42, 44],
+    "available": false
+  }
+]
