@@ -258,16 +258,8 @@ function trimHistory(history) {
   }
 }
 
-// ---------- Bot handlers ----------
-bot.command("start", async (ctx) => {
-  conversations.delete(ctx.chat.id);
-  await ctx.reply("👋 Вітаю у Your Shop! Я — асистент магазину. Чим можу допомогти?");
-});
-
-bot.on("message:text", async (ctx) => {
-  const chatId = ctx.chat.id;
-  const userText = ctx.message.text;
-
+// ---------- Shared reply logic (used for both regular and Business messages) ----------
+async function handleIncomingMessage(ctx, chatId, userText) {
   const history = getHistory(chatId);
   history.push({ role: "user", content: userText });
   trimHistory(history);
@@ -292,6 +284,8 @@ bot.on("message:text", async (ctx) => {
     if (replyText) {
       history.push({ role: "assistant", content: replyText });
       trimHistory(history);
+      // ctx.reply automatically detects and uses businessConnectionId
+      // when the incoming update came through a Telegram Business connection.
       await ctx.reply(replyText);
     }
   } catch (err) {
@@ -300,6 +294,41 @@ bot.on("message:text", async (ctx) => {
       "Вибачте, сталася технічна помилка 🙏 Спробуйте, будь ласка, написати ще раз трохи пізніше."
     );
   }
+}
+
+// ---------- Bot handlers ----------
+bot.command("start", async (ctx) => {
+  conversations.delete(ctx.chat.id);
+  await ctx.reply("👋 Вітаю у Your Shop! Я — асистент магазину. Чим можу допомогти?");
+});
+
+// Regular direct messages to the bot (@order_shop_test_bot)
+bot.on("message:text", async (ctx) => {
+  await handleIncomingMessage(ctx, ctx.chat.id, ctx.message.text);
+});
+
+// Messages routed through a Telegram Business connection
+// (i.e. customers writing to your personal account, with the bot replying as you)
+bot.on("business_message", async (ctx) => {
+  const msg = ctx.businessMessage;
+  if (!msg?.text) return; // ignore non-text business messages for now
+
+  // Find out who actually sent this message: you, or your customer.
+  const conn = await ctx.getBusinessConnection();
+  const isFromOwner = ctx.from.id === conn.user.id;
+
+  if (isFromOwner) {
+    // You wrote this yourself manually — don't let the bot reply to itself.
+    return;
+  }
+
+  if (!conn.rights?.can_reply) {
+    console.warn("Business connection does not grant reply permission, skipping.");
+    return;
+  }
+
+  // Use the business chat id as the conversation key so history stays separate per customer.
+  await handleIncomingMessage(ctx, msg.chat.id, msg.text);
 });
 
 bot.catch((err) => {
