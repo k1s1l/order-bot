@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { Bot } from "grammy";
 import Anthropic from "@anthropic-ai/sdk";
-import catalog from "./catalog.js";
+import catalogRepository from "./src/catalog/catalogRepository.js";
+import logger from "./src/utils/logger.js";
 
 // ---------- Config ----------
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -27,7 +28,7 @@ const conversations = new Map();
 
 // ---------- System prompt ----------
 async function buildSystemPrompt() {
-  const catalogText = await catalog.formatForPrompt();
+  const catalogText = await catalogRepository.formatForPrompt();
 
   return `
 Ти — AI-асистент інтернет-магазину "Your Shop".
@@ -236,11 +237,25 @@ ${catalogText}
 `;
 }
 
+// Системний промпт кешується, АЛЕ перебудовується щоразу, коли
+// каталог реально оновився (catalogRepository.getStatus().version
+// змінюється після кожної успішної синхронізації з Google Sheets).
+// Це критично: без цієї перевірки товари, додані/змінені в таблиці,
+// ніколи б не потрапили до AI без повного перезапуску бота —
+// а весь сенс переходу на Google Sheets саме в тому, щоб цього
+// НЕ треба було робити.
 let systemPromptCache = null;
+let systemPromptCacheVersion = -1;
+
 async function getSystemPrompt() {
-  if (!systemPromptCache) {
+  const currentVersion = catalogRepository.getStatus().version;
+
+  if (!systemPromptCache || currentVersion !== systemPromptCacheVersion) {
     systemPromptCache = await buildSystemPrompt();
+    systemPromptCacheVersion = currentVersion;
+    logger.debug(`System prompt перебудовано (версія каталогу: ${currentVersion}).`);
   }
+
   return systemPromptCache;
 }
 
@@ -284,8 +299,8 @@ async function handleIncomingMessage(ctx, chatId, userText) {
     if (replyText) {
       history.push({ role: "assistant", content: replyText });
       trimHistory(history);
-      // ctx.reply автоматично визначає і використовує businessConnectionId,
-      // коли повідомлення прийшло через Telegram Business-підключення.
+      // ctx.reply automatically detects and uses businessConnectionId
+      // when the incoming update came through a Telegram Business connection.
       await ctx.reply(replyText);
     }
   } catch (err) {
@@ -302,23 +317,23 @@ bot.command("start", async (ctx) => {
   await ctx.reply("👋 Вітаю у Your Shop! Я — асистент магазину. Чим можу допомогти?");
 });
 
-// Звичайні повідомлення напряму боту (@order_shop_test_bot)
+// Regular direct messages to the bot (@order_shop_test_bot)
 bot.on("message:text", async (ctx) => {
   await handleIncomingMessage(ctx, ctx.chat.id, ctx.message.text);
 });
 
-// Повідомлення через Telegram Business-підключення
-// (клієнти пишуть на ваш особистий акаунт, бот відповідає від вашого імені)
+// Messages routed through a Telegram Business connection
+// (i.e. customers writing to your personal account, with the bot replying as you)
 bot.on("business_message", async (ctx) => {
   const msg = ctx.businessMessage;
-  if (!msg?.text) return; // поки що ігноруємо не-текстові business-повідомлення
+  if (!msg?.text) return; // ignore non-text business messages for now
 
-  // З'ясовуємо, хто саме написав: ви самі, чи клієнт.
+  // Find out who actually sent this message: you, or your customer.
   const conn = await ctx.getBusinessConnection();
   const isFromOwner = ctx.from.id === conn.user.id;
 
   if (isFromOwner) {
-    // Це ви самі написали вручну — бот не повинен відповідати сам собі.
+    // You wrote this yourself manually — don't let the bot reply to itself.
     return;
   }
 
@@ -327,13 +342,52 @@ bot.on("business_message", async (ctx) => {
     return;
   }
 
-  // Використовуємо ID саме цього чату, щоб історія була окремою для кожного клієнта.
+  // Use the business chat id as the conversation key so history stays separate per customer.
   await handleIncomingMessage(ctx, msg.chat.id, msg.text);
+});
+
+// Ручне оновлення каталогу поза розкладом (наприклад, якщо власник
+// щойно змінив ціну і не хоче чекати на автоматичну синхронізацію).
+// Доступно лише власнику (OWNER_TELEGRAM_ID в .env) — щоб клієнти
+// не могли скликати примусову синхронізацію.
+bot.command("refreshcatalog", async (ctx) => {
+  const ownerId = process.env.OWNER_TELEGRAM_ID;
+  if (!ownerId || String(ctx.from?.id) !== String(ownerId)) {
+    return; // тихо ігноруємо — не видаємо стороннім, що ця команда взагалі існує
+  }
+
+  await ctx.reply("🔄 Оновлюю каталог з Google Таблиці...");
+  const products = await catalogRepository.forceRefresh();
+  const status = catalogRepository.getStatus();
+
+  if (status.lastError) {
+    await ctx.reply(
+      `⚠️ Синхронізація не вдалася: ${status.lastError.message}\n` +
+        `Використовується попередня версія каталогу (${products.length} товар(ів)).`
+    );
+  } else {
+    await ctx.reply(`✅ Каталог оновлено: ${products.length} товар(ів) завантажено.`);
+  }
 });
 
 bot.catch((err) => {
   console.error("Bot error:", err);
 });
 
-bot.start();
-console.log("🌟 Бот Your Shop запущено...");
+async function start() {
+  try {
+    await catalogRepository.init();
+  } catch (err) {
+    console.error("❌ Не вдалося ініціалізувати каталог:", err.message);
+    console.error(
+      "Перевірте змінні середовища GOOGLE_SHEETS_SPREADSHEET_ID, " +
+        "GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY (докладніше: docs/GOOGLE_SHEETS_SETUP.md)."
+    );
+    process.exit(1);
+  }
+
+  bot.start();
+  console.log("🌟 Бот Your Shop запущено...");
+}
+
+start();
