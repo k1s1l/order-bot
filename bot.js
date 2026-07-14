@@ -284,8 +284,8 @@ async function handleIncomingMessage(ctx, chatId, userText) {
     if (replyText) {
       history.push({ role: "assistant", content: replyText });
       trimHistory(history);
-      // ctx.reply automatically detects and uses businessConnectionId
-      // when the incoming update came through a Telegram Business connection.
+      // ctx.reply автоматично визначає і використовує businessConnectionId,
+      // коли повідомлення прийшло через Telegram Business-підключення.
       await ctx.reply(replyText);
     }
   } catch (err) {
@@ -302,23 +302,23 @@ bot.command("start", async (ctx) => {
   await ctx.reply("👋 Вітаю у Your Shop! Я — асистент магазину. Чим можу допомогти?");
 });
 
-// Regular direct messages to the bot (@order_shop_test_bot)
+// Звичайні повідомлення напряму боту (@order_shop_test_bot)
 bot.on("message:text", async (ctx) => {
   await handleIncomingMessage(ctx, ctx.chat.id, ctx.message.text);
 });
 
-// Messages routed through a Telegram Business connection
-// (i.e. customers writing to your personal account, with the bot replying as you)
+// Повідомлення через Telegram Business-підключення
+// (клієнти пишуть на ваш особистий акаунт, бот відповідає від вашого імені)
 bot.on("business_message", async (ctx) => {
   const msg = ctx.businessMessage;
-  if (!msg?.text) return; // ignore non-text business messages for now
+  if (!msg?.text) return; // поки що ігноруємо не-текстові business-повідомлення
 
-  // Find out who actually sent this message: you, or your customer.
+  // З'ясовуємо, хто саме написав: ви самі, чи клієнт.
   const conn = await ctx.getBusinessConnection();
   const isFromOwner = ctx.from.id === conn.user.id;
 
   if (isFromOwner) {
-    // You wrote this yourself manually — don't let the bot reply to itself.
+    // Це ви самі написали вручну — бот не повинен відповідати сам собі.
     return;
   }
 
@@ -327,7 +327,7 @@ bot.on("business_message", async (ctx) => {
     return;
   }
 
-  // Use the business chat id as the conversation key so history stays separate per customer.
+  // Використовуємо ID саме цього чату, щоб історія була окремою для кожного клієнта.
   await handleIncomingMessage(ctx, msg.chat.id, msg.text);
 });
 
