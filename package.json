@@ -2,10 +2,12 @@
   "name": "order-bot",
   "version": "1.0.0",
   "type": "module",
-  "scripts": { "start": "node bot.js" },
+  "scripts": { "start": "node bot.js", "test": "node manual-test.mjs" },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "dotenv": "^16.4.5",
-    "grammy": "^1.30.0"
+    "grammy": "^1.30.0",
+    "googleapis": "^140.0.0",
+    "fuse.js": "^7.0.0"
   }
 }

@@ -1,110 +1,20 @@
 [
   {
-    "name": "AirPods Max 2",
-    "price": 18990,
-    "sizes": [],
+    "name": "Nike Air Force White",
+    "price": 1900,
+    "sizes": [39, 40, 41, 42, 43],
     "available": true
   },
   {
-    "name": "AirPods Max 1",
-    "price": 14990,
-    "sizes": [],
+    "name": "Adidas Superstar Black",
+    "price": 2100,
+    "sizes": [38, 39, 40, 41],
     "available": true
   },
   {
-    "name": "AirPods Pro 3 (Type-C)",
-    "price": 4990,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "AirPods Pro 2 (Lightning)",
-    "price": 3990,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "AirPods Pro 2 (Type-C)",
-    "price": 4590,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "AirPods Pro",
-    "price": 2990,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "AirPods 4",
-    "price": 3490,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "AirPods 3",
-    "price": 2890,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "AirPods 2",
-    "price": 2190,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "Apple Watch Series 9 (41/45mm)",
-    "price": 8990,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "Apple Watch Ultra 2 (49mm)",
-    "price": 16990,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "Apple Watch Series 10 (42/46mm)",
-    "price": 10990,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "Apple Watch Series 11 (42/46mm)",
-    "price": 13990,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "Dyson HD08 Premium",
-    "price": 15990,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "Dyson Airstrait Premium",
-    "price": 19990,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "Dyson HS05 Стайлер",
-    "price": 17990,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "Apple Battery Pack MagSafe",
-    "price": 2490,
-    "sizes": [],
-    "available": true
-  },
-  {
-    "name": "Блоки 20W / Кабели",
-    "price": 690,
-    "sizes": [],
-    "available": true
+    "name": "Puma RS-X",
+    "price": 2400,
+    "sizes": [40, 41, 42, 44],
+    "available": false
   }
 ]
